@@ -82,11 +82,12 @@ pub fn execute() {
 	let msg = alloc::str::from_utf8(&data).ok().unwrap_or_else(|| sys::panic());
 	log(&msg);
 
+	// parse rules
 	let rules_data = storage_read(RULES_KEY);
 	let rules_str = alloc::str::from_utf8(&rules_data).ok().unwrap_or_else(|| sys::panic());
 	log(&rules_str);
 	let contracts: Vec<&str> = get_string(rules_str, "|kP|contracts").split(",").collect();
-	let methods: Vec<&str> = get_string(rules_str, "|kP|methods").split(",").collect();
+	let methods: Vec<Vec<&str>> = get_string(rules_str, "|kP|methods").split(",").map(|s| s.split(":").collect()).collect();
 	let amounts: Vec<u128> = get_string(rules_str, "|kP|amounts")
 		.split(",")
 		.map(|a| {
@@ -95,13 +96,7 @@ pub fn execute() {
 		})
 		.collect();
 
-	log(&contracts.join(","));
-	log(&methods.join(","));
-	let one_near: u128 = 1000000000000000000000000;
-	if amounts.contains(&one_near) {
-		log("contains NEAR amount")
-	}
-
+	// parse transactions
 	let mut transactions: Vec<&str> = msg.split(RECEIVER_HEADER).collect();
 	transactions.remove(0);
 
@@ -112,27 +107,28 @@ pub fn execute() {
 	while transactions.len() > 0 {
 		let tx = transactions.remove(0);
 
-		let (mut receiver, tx_rest) = tx.split_once(COMMA).unwrap_or_else(|| sys::panic());
-		receiver = &receiver[1..receiver.len()-1];
+		let (mut receiver_id, tx_rest) = tx.split_once(COMMA).unwrap_or_else(|| sys::panic());
+		receiver_id = &receiver_id[1..receiver_id.len()-1];
 
-		log(receiver);
-		if !contracts.contains(&receiver) {
+		let receiver_index_option = contracts.iter().position(|c| c == &receiver_id);
+		if receiver_index_option.is_none() {
 			sys::panic()
 		}
+		let receiver_index = receiver_index_option.unwrap();
 
 		let id = if promises.len() == 0 {
 			unsafe {
 				near_sys::promise_batch_create(
-					receiver.len() as u64,
-					receiver.as_ptr() as u64
+					receiver_id.len() as u64,
+					receiver_id.as_ptr() as u64
 				)
 			}
 		} else {
 			unsafe {
 				near_sys::promise_batch_then(
 					promises[promises.len() - 1],
-					receiver.len() as u64,
-					receiver.as_ptr() as u64
+					receiver_id.len() as u64,
+					receiver_id.as_ptr() as u64
 				)
 			}
 		};
@@ -148,14 +144,17 @@ pub fn execute() {
 			let (mut action_type, params) = action.split_once(COMMA).unwrap_or_else(|| sys::panic());
 			action_type = &action_type[1..action_type.len()-1];
 
-			log(action_type);
-			log(params);
+			// log(action_type);
+			// log(params);
 
 			// match
 
 			match action_type.as_bytes() {
 				b"Transfer" => {
 					let deposit = get_u128(params, DEPOSIT);
+					if deposit > amounts[receiver_index] {
+						sys::panic()
+					}
 					unsafe {
 						near_sys::promise_batch_action_transfer(
 							id,
@@ -165,8 +164,18 @@ pub fn execute() {
 				}
 				b"FunctionCall" => {
 					let method_name = get_string(params, "|kP|methodName");
+
+					log(method_name);
+					log(&methods[receiver_index].join(":"));
+
+					if !methods[receiver_index].contains(&method_name) {
+						sys::panic()
+					}
 					let args = &get_string(params, "|kP|args").replace("\\", "");
 					let deposit = get_u128(params, DEPOSIT);
+					if deposit > amounts[receiver_index] {
+						sys::panic()
+					}
 					let gas = get_u128(params, "|kP|gas") as u64;
 					unsafe {
 						near_sys::promise_batch_action_function_call(

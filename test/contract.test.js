@@ -35,6 +35,7 @@ const {
 
 const { publicKey, secretKey } = parseSeedPhrase(process.env.REACT_APP_FUNDING_SEED_PHRASE)
 const fundingAccountId = PublicKey.from(publicKey).data.toString('hex')
+console.log(fundingAccountId)
 keyStore.setKey(
 	networkId,
 	fundingAccountId,
@@ -119,9 +120,9 @@ test('implicit account setup', async (t) => {
 			functionCall(
 				'setup',
 				JSON.stringify(wrapParams({
-					contracts: ['testnet', 'beta.keypom.testnet'].join(),
-					amounts: [parseNearAmount('1'), parseNearAmount('0.1')].join(),
-					methods: ['create_account_and_claim', 'create_drop:delete_keys'].join()
+					contracts: [fundingAccountId, 'testnet', 'beta.keypom.testnet'].join(),
+					amounts: ['1', parseNearAmount('1'), parseNearAmount('0.1')].join(),
+					methods: ['*', 'claim:create_account:create_account_and_claim', 'create_drop:delete_keys'].join()
 				})),
 				gas,
 			),

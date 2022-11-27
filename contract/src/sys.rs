@@ -20,7 +20,12 @@ pub(crate) unsafe fn return_bytes(bytes: &[u8], json: bool) {
     let mut ret_data = vec![DOUBLE_QUOTE_BYTE];
     if json == true {
         let bytes_str = alloc::str::from_utf8(&bytes).ok().unwrap_or_else(|| sys::panic());
-        ret_data.extend_from_slice(bytes_str.replace("\"", "\\\"").as_bytes());
+        ret_data.extend_from_slice(bytes_str
+            .replace("\"", "\\\"")
+            .replace("|kP|", "")
+            .replace("|kS|", "")
+            .as_bytes()
+        );
     } else {
         ret_data.extend_from_slice(bytes);
     }

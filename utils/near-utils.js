@@ -19,27 +19,40 @@ let credentials, keyStore;
 if (isBrowser) {
 	keyStore = new BrowserLocalStorageKeyStore();
 } else {
-	/// nodejs (for tests)
-	try {
-		console.log(`Loading Credentials: ${process.env.HOME}/.near-credentials/${networkId}/${contractId}.json`);
-		credentials = JSON.parse(
-			fs.readFileSync(
-				`${process.env.HOME}/.near-credentials/${networkId}/${contractId}.json`
-			)
-		);
-	} catch(e) {
-		console.warn(`Loading Credentials: ./neardev/${networkId}/${contractId}.json`);
-		credentials = JSON.parse(
-			fs.readFileSync(
-				`./neardev/${networkId}/${contractId}.json`
-			)
-		);
+
+	let keyPair
+
+	const { parseSeedPhrase } = require('near-seed-phrase');
+	const fundingSeedPhrase = process.env.REACT_APP_FUNDING_SEED_PHRASE
+	if (fundingSeedPhrase) {
+		const { publicKey, secretKey } = parseSeedPhrase(process.env.REACT_APP_FUNDING_SEED_PHRASE)
+		contractFromProcess = publicKey
+		keyPair = KeyPair.fromString(secretKey)
+	} else {
+		/// nodejs (for tests)
+		try {
+			console.log(`Loading Credentials: ${process.env.HOME}/.near-credentials/${networkId}/${contractId}.json`);
+			credentials = JSON.parse(
+				fs.readFileSync(
+					`${process.env.HOME}/.near-credentials/${networkId}/${contractId}.json`
+				)
+			);
+		} catch(e) {
+			console.warn(`Loading Credentials: ./neardev/${networkId}/${contractId}.json`);
+			credentials = JSON.parse(
+				fs.readFileSync(
+					`./neardev/${networkId}/${contractId}.json`
+				)
+			);
+		}
+		KeyPair.fromString(credentials.private_key)
 	}
+
 	keyStore = new InMemoryKeyStore();
 	keyStore.setKey(
 		networkId,
 		contractId,
-		KeyPair.fromString(credentials.private_key)
+		keyPair
 	);
 }
 

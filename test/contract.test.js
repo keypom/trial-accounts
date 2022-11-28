@@ -1,6 +1,6 @@
 const fs = require('fs');
 const test = require('ava');
-const { generateSeedPhrase, parseSeedPhrase } = require('near-seed-phrase');
+const { parseSeedPhrase } = require('near-seed-phrase');
 const nearAPI = require('near-api-js');
 require('dotenv').config()
 

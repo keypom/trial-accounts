@@ -1,4 +1,12 @@
-const contractName = process.env.REACT_APP_CONTRACT_ID || 'neth.testnet';
+const { parseSeedPhrase } = require('near-seed-phrase');
+let contractFromProcess = process.env.REACT_APP_CONTRACT_ID
+const fundingSeedPhrase = process.env.REACT_APP_FUNDING_SEED_PHRASE
+if (fundingSeedPhrase) {
+	const { publicKey, secretKey } = parseSeedPhrase(process.env.REACT_APP_FUNDING_SEED_PHRASE)
+	contractFromProcess = publicKey
+}
+
+const contractName = contractFromProcess || 'testnet';
 
 module.exports = function getConfig(network = process.env.REACT_APP_NETWORK_ID || 'testnet') {
 	let config = {

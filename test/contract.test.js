@@ -43,7 +43,7 @@ keyStore.setKey(
 );
 const fundingAccount = new Account(connection, fundingAccountId)
 
-const DELETE_EXISTING = true;
+const DELETE_EXISTING = false;
 const REDEPLOY = true;
 /// some vars re-used in the tests
 let accountId = 'jaweaoiwjfoawiejfoawjef.testnet', account;
@@ -60,6 +60,7 @@ const PARAM_STOP = '|kS|'
 
 const wrapParams = (params, newParams = {}) => {
 	Object.entries(params).forEach(([k, v]) => {
+		if (Array.isArray(v)) v = v.join()
 		newParams[PARAM_START+k] = v + PARAM_STOP
 	})
 	return newParams
@@ -120,9 +121,11 @@ test('implicit account setup', async (t) => {
 			functionCall(
 				'setup',
 				JSON.stringify(wrapParams({
-					contracts: [fundingAccountId, 'testnet', 'beta.keypom.testnet'].join(),
-					amounts: ['1', parseNearAmount('1'), parseNearAmount('0.1')].join(),
-					methods: ['*', 'claim:create_account:create_account_and_claim', 'create_drop:delete_keys'].join()
+					contracts: [fundingAccountId, 'testnet', 'beta.keypom.testnet'],
+					amounts: ['1', parseNearAmount('1'), parseNearAmount('0.1')],
+					methods: ['*', 'claim:create_account:create_account_and_claim', 'create_drop:delete_keys'],
+					funder: 'md1.testnet',
+					repay: parseNearAmount('1'),
 				})),
 				gas,
 			),
@@ -153,12 +156,12 @@ test('get_rules', async (t) => {
 	t.true(true);
 });
 
-test('get_nonce', async (t) => {
-	const res = await account.viewFunction(
-		accountId,
-		'get_nonce'
-	);
-	console.log('get_nonce', res);
+test('exit', async (t) => {
+	await account.functionCall({
+		contractId: accountId,
+		methodName: 'exit',
+		args: {},
+	});
 
 	t.true(true);
 });

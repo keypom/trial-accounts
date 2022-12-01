@@ -3,7 +3,6 @@
 
 /// storage keys used by this contract because it uses raw storage key value writes and reads
 const RULES_KEY: &[u8] = b"r";
-const NONCE_KEY: &[u8] = b"n";
 /// register constants used
 const REGISTER_0: u64 = 0;
 /// string literals (improve readability)
@@ -23,6 +22,7 @@ extern crate alloc;
 
 use alloc::vec;
 use alloc::vec::Vec;
+use alloc::format;
 // use alloc::string::ToString;
 
 mod sys;
@@ -55,37 +55,14 @@ pub fn setup() {
 	// remove quotes from string with slice, strip slashes, and write it
 	let data_str = alloc::str::from_utf8(&data[1..data.len()-1]).ok().unwrap_or_else(|| sys::panic());
     swrite(RULES_KEY, data_str.replace("\\\"", "\"").as_bytes());
-	let nonce: u64 = 0;
-    swrite(NONCE_KEY, &nonce.to_le_bytes());
 }
 
-/// This method is the main interpreter of the eth typed data signed payload by the ethereum account.
-/// First the predecessor is checked by assert_predecessor() in owner.rs to ensure only access keys originating from this NEAR account are calling.
-/// Next the nonce and new nonce are read and computed from storage.
-/// Finally the data is returned from assert_valid_tx(nonce) in owner.rs.
-/// 
-/// After these conditions are satisfied the method parses and executes the transaction payload.
-/// 
-/// For details on NEAR transactions and actions please refer to: https://nomicon.io/RuntimeSpec/, https://nomicon.io/RuntimeSpec/Actions
-/// 
-/// Matching wallet-selector transaction payload structs here:
-/// https://github.com/near/wallet-selector/blob/main/packages/core/src/lib/wallet/transactions.types.ts
 #[no_mangle]
 pub fn execute() {
 
-	let nonce = unsafe { sread_u64(NONCE_KEY) };
-    swrite(NONCE_KEY, &(nonce + 1).to_le_bytes());
-
-    unsafe { near_sys::input(REGISTER_0) };
-    let data = register_read(REGISTER_0);
-
-	let msg = alloc::str::from_utf8(&data).ok().unwrap_or_else(|| sys::panic());
-	log(&msg);
-
-	// parse rules
+	// rules
 	let rules_data = storage_read(RULES_KEY);
 	let rules_str = alloc::str::from_utf8(&rules_data).ok().unwrap_or_else(|| sys::panic());
-	log(&rules_str);
 	let contracts: Vec<&str> = get_string(rules_str, "|kP|contracts").split(",").collect();
 	let methods: Vec<Vec<&str>> = get_string(rules_str, "|kP|methods").split(",").map(|s| s.split(":").collect()).collect();
 	let amounts: Vec<u128> = get_string(rules_str, "|kP|amounts")
@@ -96,11 +73,17 @@ pub fn execute() {
 		})
 		.collect();
 
-	// parse transactions
+	// args
+    unsafe { near_sys::input(REGISTER_0) };
+    let data = register_read(REGISTER_0);
+	let msg = alloc::str::from_utf8(&data).ok().unwrap_or_else(|| sys::panic());
+	log(&msg);
+
+	// transactions
 	let mut transactions: Vec<&str> = msg.split(RECEIVER_HEADER).collect();
 	transactions.remove(0);
 
-	// keep track of promise ids for each tx
+	// promise ids for each tx
 	let mut promises: Vec<u64> = vec![];
 
 	// execute transactions
@@ -150,18 +133,6 @@ pub fn execute() {
 			// match
 
 			match action_type.as_bytes() {
-				b"Transfer" => {
-					let deposit = get_u128(params, DEPOSIT);
-					if deposit > amounts[receiver_index] {
-						sys::panic()
-					}
-					unsafe {
-						near_sys::promise_batch_action_transfer(
-							id,
-							deposit.to_le_bytes().as_ptr() as u64,
-						)
-					};
-				}
 				b"FunctionCall" => {
 					let method_name = get_string(params, "|kP|methodName");
 
@@ -186,21 +157,7 @@ pub fn execute() {
 							args.as_ptr() as u64,
 							deposit.to_le_bytes().as_ptr() as u64,
 							gas,
-						)
-					};
-				}
-				// only adds full access keys (exit account, delete contract)
-				b"AddKey" => {
-					let mut public_key = vec![0];
-					let bytes = get_string(action, "|MTXP|publicKey").as_bytes();
-					public_key.extend_from_slice(&hex2bytes(&bytes, bytes.len()));
-					unsafe {
-						near_sys::promise_batch_action_add_key_with_full_access(
-							id,
-							public_key.len() as u64,
-							public_key.as_ptr() as u64,
-							0,
-						)
+						);
 					};
 				}
 				_ => {}
@@ -209,14 +166,25 @@ pub fn execute() {
 	}
 }
 
+#[no_mangle]
+pub fn exit() {
+	// rules
+	let rules_data = storage_read(RULES_KEY);
+	let rules_str = alloc::str::from_utf8(&rules_data).ok().unwrap_or_else(|| sys::panic());
+	let repay: u128 = get_string(rules_str, "|kP|repay").parse().ok().unwrap_or_else(|| sys::panic());
+	
+	log(&format!("{}", repay));
+
+	let account_balance = account_balance();
+	log(&format!("{}", account_balance));
+	if account_balance < repay {
+		log("cannot repay");
+	}
+}
+
 /// views
 
 #[no_mangle]
 pub(crate) unsafe fn get_rules() {
     return_bytes(&storage_read(RULES_KEY), true);
-}
-
-#[no_mangle]
-pub(crate) unsafe fn get_nonce() {
-    return_bytes(&bytes2hex(&sread_u64(NONCE_KEY).to_be_bytes()), false);
 }

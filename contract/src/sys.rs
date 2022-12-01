@@ -8,14 +8,6 @@ pub fn log(message: &str) {
     }
 }
 
-pub fn read_register_fixed<const N: usize>(register_id: u64) -> [u8; N] {
-    let mut buffer = [0; N];
-    //* SAFETY: Assumes register length is not greater than the buffer. Less is fine
-    //* 		since the buffer is zeroed, but more will cause UB.
-    unsafe { near_sys::read_register(register_id, buffer.as_mut_ptr() as _) };
-    buffer
-}
-
 pub(crate) unsafe fn return_bytes(bytes: &[u8], json: bool) {
     let mut ret_data = vec![DOUBLE_QUOTE_BYTE];
     if json == true {
@@ -56,10 +48,10 @@ pub(crate) fn storage_read(key: &[u8]) -> Vec<u8> {
     register_read(REGISTER_0)
 }
 
-//* SAFETY: Assumes that length of storage value at this key is less than u64 buffer len (8).
-pub(crate) unsafe fn sread_u64(key: &[u8]) -> u64 {
-    near_sys::storage_read(key.len() as u64, key.as_ptr() as u64, REGISTER_0);
-    u64::from_le_bytes(read_register_fixed(REGISTER_0))
+pub(crate) fn account_balance() -> u128 {
+    let buffer = [0u8; 16];
+    unsafe { near_sys::account_balance(buffer.as_ptr() as u64) };
+    u128::from_le_bytes(buffer)
 }
 
 pub(crate) fn register_read(id: u64) -> Vec<u8> {

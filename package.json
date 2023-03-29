@@ -1,48 +1,20 @@
 {
-	"name": "react-parcel-boilerplate",
+	"name": "keypom-trial-accounts",
 	"version": "1.0.0",
-	"description": "React Parcel Boilerplate",
-	"author": "Matt Lockyer",
-	"license": "ISC",
-	"dependencies": {
-		"dotenv": "^16.0.2",
-		"near-seed-phrase": "^0.2.0",
-		"parcel": "^2.3.2",
-		"react": "^17.0.2",
-		"react-dom": "^17.0.2"
+	"license": "MIT",
+	"author": "Ben Kurrek, Matt Lockyer",
+	"scripts": {
+		"build:contracts": "yarn build:mapping && yarn build:trial",
+		"build:trial": "cd trial-contract && ./build.sh",
+		"build:mapping": "cd mapping-contract && ./build.sh",
+		"test:internals": "ava __tests__/internals/test-internals.ava.ts"
 	},
 	"devDependencies": {
-		"@parcel/transformer-sass": "2.3.2",
-		"ava": "^3.15.0",
-		"crypto-browserify": "^3.12.0",
-		"eslint": "^8.6.0",
-		"events": "^3.3.0",
-		"gh-pages": "^3.2.3",
+		"@types/bn.js": "^5.1.0",
+		"ava": "^5.0.1",
 		"near-api-js": "^0.44.2",
-		"path-browserify": "^1.0.1",
-		"process": "^0.11.10",
-		"rimraf": "^3.0.2",
-		"stream-browserify": "^3.0.0"
-	},
-	"browserslist": [
-		"last 2 Chrome versions"
-	],
-	"scripts": {
-		"prebuild": "yarn clean",
-		"build-lib": "cd neth && npx tsc && cd ..",
-		"build": "parcel build src/index.html --public-url ./ --no-source-maps",
-		"clean": "rimraf ./dist",
-		"start": "parcel src/index.html --open",
-		"mainnet": "REACT_APP_NETWORK_ID=mainnet parcel src/index.html --open",
-		"build-account-map": "cd account-map && ./build.sh && cd ..",
-		"deploy-account-map": "yarn build-account-map && near deploy --accountId map.neth.testnet --wasmFile out/account-map.wasm",
-		"build-contract": "cd contract && ./build.sh && cd ..",
-		"patch-config": "node ./utils/patch-config.js",
-		"dev-deploy": "rm -rf neardev && (near dev-deploy || exit 0) && yarn patch-config",
-		"test-build": "yarn build-contract && yarn test",
-		"test-deploy": "yarn build-contract && yarn dev-deploy && yarn test",
-		"test": "ava test/contract.test.js -vs --timeout=5m",
-		"deploy-app": "yarn clean; yarn build; yarn gh-pages -d dist",
-		"fix": "eslint test/ --fix"
+		"near-workspaces": "3.2.2",
+		"ts-node": "^10.8.0",
+		"typescript": "^4.6.4"
 	}
 }

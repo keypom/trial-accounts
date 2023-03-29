@@ -9,18 +9,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
 
 [[package]]
-name = "eth-near"
-version = "0.1.0"
-dependencies = [
- "near-sys",
- "wee_alloc",
-]
-
-[[package]]
 name = "libc"
-version = "0.2.119"
+version = "0.2.140"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bf2e165bb3457c8e098ea76f3e3bc9db55f87aa90d52d0e6be741470916aaa4"
+checksum = "99227334921fae1a979cf0bfdfcc6b3e5ce376ef57e16fb6fb3ea2ed6095f80c"
 
 [[package]]
 name = "memory_units"
@@ -33,6 +25,14 @@ name = "near-sys"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e307313276eaeced2ca95740b5639e1f3125b7c97f0a1151809d105f1aa8c6d3"
+
+[[package]]
+name = "trial-accounts"
+version = "0.1.0"
+dependencies = [
+ "near-sys",
+ "wee_alloc",
+]
 
 [[package]]
 name = "wee_alloc"

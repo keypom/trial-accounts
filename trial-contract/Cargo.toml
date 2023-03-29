@@ -1,10 +1,10 @@
 [package]
-name = "eth-near"
-edition = "2018"
+name = "trial-accounts"
+edition = "2021"
 version = "0.1.0"
-authors = ["Illia Polosukhin <ilblackdragon@gmail.com>", "Matt Lockyer <matt@proximity.dev>"]
+authors = ["Matt Lockyer <matt@proximity.dev>", "Ben Kurrek <bkurrek@uwaterloo.ca>"]
 license = "Apache2"
-description = "Sign message with metamask, have actions executed on NEAR"
+description = "Give users a seamless no-rug trial to an app on NEAR"
 publish = false
 
 [lib]

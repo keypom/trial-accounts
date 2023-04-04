@@ -1,62 +1,55 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LookupMap;
-use near_sdk::{env, near_bindgen, AccountId, BorshStorageKey, PanicOnDefault};
+use near_sdk::{env, near_bindgen, AccountId, BorshStorageKey, PanicOnDefault, PublicKey, Promise};
 
 #[derive(BorshSerialize, BorshStorageKey)]
 enum StorageKeys {
-    Mappings,
-    Delegates,
+    NearByPk,
 }
 
 #[near_bindgen]
 #[derive(BorshSerialize, BorshDeserialize, PanicOnDefault)]
-struct Contract {
-    mappings: LookupMap<(AccountId, String), String>,
-    delegates: LookupMap<AccountId, AccountId>,
+pub struct Mapping {
+    near_by_pk: LookupMap<PublicKey, AccountId>
 }
 
 #[near_bindgen]
-impl Contract {
+impl Mapping {
     #[init]
     pub fn new() -> Self {
         Self {
-            mappings: LookupMap::new(StorageKeys::Mappings),
-            delegates: LookupMap::new(StorageKeys::Delegates),
+            near_by_pk: LookupMap::new(StorageKeys::NearByPk)
         }
     }
 
-    pub fn set(&mut self, account_id: Option<AccountId>, label: String, content: Option<String>) {
-        let id = if let Some(account_id) = account_id {
-            if env::predecessor_account_id() != account_id {
-                assert_eq!(
-                    self.delegates.get(&account_id).expect("ERR_NOT_DELEGATE"),
-                    env::predecessor_account_id(),
-                    "ERR_NOT_DELEGATE"
-                );
-            }
-            account_id
-        } else {
-            env::predecessor_account_id()
-        };
-        if let Some(content) = content {
-            self.mappings.insert(&(id, label), &content);
-        } else {
-            self.mappings.remove(&(id, label));
+    #[payable]
+    pub fn set(&mut self) {
+        let pk = env::signer_account_pk();
+        let account_id = env::signer_account_id();
+
+        let initial_storage = env::storage_usage();
+        
+        self.near_by_pk.insert(&pk, &account_id);
+
+        let net = env::storage_usage() - initial_storage;
+        let price = net as u128 * env::storage_byte_cost();
+
+        let attached_deposit = env::attached_deposit();
+        assert!(attached_deposit >= price, "ERR_NOT_ENOUGH_DEPOSIT");
+
+        // Refund any unused deposit
+        if attached_deposit > price {
+            near_sdk::log!(
+                "Refunding: {} for {} excess storage",
+                env::signer_account_id(),
+                attached_deposit - price
+            );
+            Promise::new(env::signer_account_id()).transfer(attached_deposit - price);
         }
     }
 
-    pub fn get(&self, account_id: AccountId, label: String) -> String {
-        self.mappings
-            .get(&(account_id, label))
-            .expect("ERR_NO_VALUE")
-    }
-
-    pub fn delegate(&mut self, account_id: Option<AccountId>) {
-        if let Some(account_id) = account_id {
-            self.delegates
-                .insert(&env::predecessor_account_id(), &account_id);
-        } else {
-            self.delegates.remove(&env::predecessor_account_id());
-        }
+    pub fn get_account_id(&self, pk: PublicKey) -> Option<AccountId> {
+        self.near_by_pk
+            .get(&pk)
     }
 }

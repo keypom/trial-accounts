@@ -1,3 +1,6 @@
+import { initKeypom } from "keypom-js";
+import { Near } from "near-api-js";
+import { InMemoryKeyStore } from "near-api-js/lib/key_stores";
 import { BN, KeyPair, NEAR, NearAccount, TransactionResult } from "near-workspaces";
 import { JsonDrop, JsonKeyInfo } from "./types";
 
@@ -10,6 +13,39 @@ export const DEFAULT_TERRA_IN_NEAR: string = "3000000000000000000000";
 export const CONTRACT_METADATA = {
   "version": "1.0.0",
   "link": "https://github.com/mattlockyer/proxy/commit/71a943ea8b7f5a3b7d9e9ac2208940f074f8afba",
+}
+
+export async function initKeypomConnection(
+  rpcPort: string,
+  funder: NearAccount
+) {
+  console.log("init keypom connection")
+  const network = 'sandbox';
+    let networkConfig = {
+        networkId: 'localnet',
+        viewAccountId: 'test.near',
+        nodeUrl: rpcPort,
+        walletUrl: `https://wallet.${network}.near.org`,
+		helperUrl: `https://helper.${network}.near.org`,
+	};
+
+    const keyStore =  new InMemoryKeyStore();
+	  const near = new Near({
+        ...networkConfig,
+        keyStore,
+        headers: {}
+    });
+
+    const funderKey = (await funder.getKey())?.toString()
+    console.log(`funderKey: `, funderKey)
+    await initKeypom({
+        near,
+        network: "localnet",
+        funder: {
+            accountId: funder.accountId,
+            secretKey: funderKey
+        }
+    })
 }
 
 export function displayFailureLog(
@@ -94,21 +130,21 @@ export function defaultCallOptions(
   };
 }
 
-export function assertBalanceChange(b1: NEAR, b2: NEAR, expected_change: NEAR, precision: number) {
-  console.log('expected change: ', expected_change.toString())
+// export function assertBalanceChange(b1: NEAR, b2: NEAR, expected_change: NEAR, precision: number) {
+//   console.log('expected change: ', expected_change.toString())
 
-  let numToDivide = new BN(Math.ceil(1 / precision));
-  let range = expected_change.abs().div(numToDivide);
-  console.log('range addition: ', range.toString())
+//   let numToDivide = new BN(Math.ceil(1 / precision));
+//   let range = expected_change.abs().div(numToDivide);
+//   console.log('range addition: ', range.toString())
 
-  let acceptableRange = {
-    upper: expected_change.abs().add(range), // 1 + .05 = 1.05
-    lower: expected_change.abs().sub(range) // 1 - .05  = .95
-  }
-  let diff = b2.sub(b1).abs();
-  console.log(`diff: ${diff.toString()} range: ${JSON.stringify(acceptableRange)}`)
-  return diff.gte(acceptableRange.lower) && diff.lte(acceptableRange.upper)
-}
+//   let acceptableRange = {
+//     upper: expected_change.abs().add(range), // 1 + .05 = 1.05
+//     lower: expected_change.abs().sub(range) // 1 - .05  = .95
+//   }
+//   let diff = b2.sub(b1).abs();
+//   console.log(`diff: ${diff.toString()} range: ${JSON.stringify(acceptableRange)}`)
+//   return diff.gte(acceptableRange.lower) && diff.lte(acceptableRange.upper)
+// }
 
 export async function queryAllViewFunctions(
   {
@@ -191,30 +227,5 @@ export async function queryAllViewFunctions(
     nextDropId: getNextDropId,
     keyTotalSupply: keyTotalSupply,
     keys: getKeys,
-  }
-}
-
-export async function createSeries(
-  {
-  account,
-  nftContract,
-  metadatas,
-  ids
-  }:
-  {
-    account: NearAccount,
-    nftContract: NearAccount,
-    metadatas: string[],
-    ids: string[]
-  }
-) {
-  for(let i = 0; i < metadatas.length; i++) {
-    let metadata = metadatas[i];
-    let id = ids[i];
-    
-    await account.call(nftContract, 'create_series', {
-      metadata,
-      mint_id: id,
-    }, {attachedDeposit: DEFAULT_DEPOSIT});
   }
 }

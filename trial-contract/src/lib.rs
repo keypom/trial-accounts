@@ -328,5 +328,5 @@ pub(crate) unsafe fn get_rules() {
 #[no_mangle]
 pub(crate) unsafe fn get_key_information() {
 	let exit_option = can_exit(&storage_read_str(RULES_KEY));
-    return_value(format!("{{\"balance\":\"0\",\"trial_data\":{{\"exit\":{}}}}}", exit_option.is_some()).as_bytes());
+    return_value(format!("{{\"required_gas\":\"50000000000000\",\"yoctoNEAR\": \"0\",\"balance\":\"0\",\"trial_data\":{{\"exit\":{}}}}}", exit_option.is_some()).as_bytes());
 }

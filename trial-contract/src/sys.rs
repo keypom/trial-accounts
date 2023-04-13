@@ -101,6 +101,16 @@ pub(crate) fn account_balance() -> u128 {
     u128::from_le_bytes(buffer)
 }
 
+pub(crate) fn sys_signer_pk_bytes() -> Vec<u8> {
+    log("sys_signer_pk called!");
+
+    unsafe {
+        near_sys::signer_account_pk(REGISTER_0);
+    }
+
+    register_read(REGISTER_0)
+}
+
 pub(crate) fn sys_account_id(which: u8) -> String {
     unsafe {
         match which {

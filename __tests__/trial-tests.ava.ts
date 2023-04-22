@@ -21,19 +21,19 @@ test.beforeEach(async (t) => {
     // Prepare sandbox for tests, create accounts, deploy contracts, etc.
     const root = worker.rootAccount;
     
-    const keypom = await root.createSubAccount('keypom');
+    //const keypom = await root.createSubAccount('keypom');
     const mapping = await root.createSubAccount('mapping');
     
     // Custom-root.near, deploy contracts to it and init new linkdrop
     await root.deploy(`./out/linkdrop.wasm`);
     // Deploy the keypom contract.
-    await keypom.deploy(`./out/keypom.wasm`);
+    //await keypom.deploy(`./out/keypom.wasm`);
     await mapping.deploy(`./out/mapping.wasm`);
     
     // Init empty/default linkdrop contract
     await root.call(root, 'new', {});
     // Init the contract
-    await keypom.call(keypom, 'new', {root_account: 'testnet', owner_id: keypom, contract_metadata: CONTRACT_METADATA});
+    //await keypom.call(keypom, 'new', {root_account: 'testnet', owner_id: keypom, contract_metadata: CONTRACT_METADATA});
     await mapping.call(mapping, 'new', {});
 
     // Test users
@@ -41,7 +41,7 @@ test.beforeEach(async (t) => {
 
     // Save state for test runs
     t.context.worker = worker;
-    t.context.accounts = { root, keypom, funder, mapping };
+    t.context.accounts = { root, funder, mapping };
     t.context.rpcPort = rpcPort;
 });
 
@@ -56,54 +56,25 @@ test.afterEach(async t => {
 test('Claim trial account drop', async t => {
     const {keypom, funder, mapping} = t.context.accounts;
     const rpcPort = t.context.rpcPort;
-    await initKeypomConnection(rpcPort, funder);
+    
+    //let key = await funder.getKey()
 
-    const callableContracts = [
-        `mapping.test.near`,
-        `keypom.test.near`,
-    ]
+    let mappingBal = await mapping.balance();
+    console.log('available before: ', mappingBal.available.toString())
+    console.log('staked before: ', mappingBal.staked.toString())
+    console.log('state staked before: ', mappingBal.stateStaked.toString())
+    console.log('total before: ', mappingBal.total.toString())
 
-    const {keys} 
-    //@ts-ignore
-    = await createTrialAccountDrop({
-        numKeys: 1,
-        contractBytes: [...readFileSync('./out/trial.wasm')],
-        startingBalanceNEAR: 1,
-        callableContracts: callableContracts,
-        callableMethods: ['*', 'add_to_balance'],
-        maxAttachableNEARPerContract: callableContracts.map(() => '1'),
-        trialEndFloorNEAR: (1 + 0.3) - 0.5,
-        config: {
-            dropRoot: `test.near`
-        }
-    })
 
-    const trialAccountId = `trial.test.near`
-    const trialAccountSecretKey = keys!.secretKeys[0]
-    await claimTrialAccountDrop({
-        secretKey: keys!.secretKeys[0],
-        desiredAccountId: trialAccountId
-    })
+    await mapping.call(mapping, 'store_contract_data', {});
+    const res = await mapping.view('get_contract_data', {});
+    console.log('res: ', res)
 
-    const balBefore = await getUserBalance({
-        accountId: trialAccountId
-    })
-    console.log('balBefore: ', balBefore)
-
-    await trialCallMethod({
-        trialAccountId,
-        trialAccountSecretKey,
-        contractId: `keypom.test.near`,
-        methodName: `add_to_balance`,
-        args: '',
-        attachedDeposit: parseNearAmount("0.1")!,
-        attachedGas: '10000000000000'
-    })
-
-    const balAfter = await getUserBalance({
-        accountId: trialAccountId
-    })
-    console.log('balAfter: ', balAfter)
+    mappingBal = await mapping.balance();
+    console.log('available after: ', mappingBal.available.toString())
+    console.log('staked after: ', mappingBal.staked.toString())
+    console.log('state staked after: ', mappingBal.stateStaked.toString())
+    console.log('total after: ', mappingBal.total.toString())
 
     // //@ts-ignore
     // const drops = await getDrops({

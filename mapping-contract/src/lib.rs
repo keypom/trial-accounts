@@ -1,5 +1,7 @@
+
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::LookupMap;
+use near_sdk::collections::{LookupMap, LookupSet};
+use near_sdk::json_types::U128;
 use near_sdk::{env, near_bindgen, AccountId, BorshStorageKey, PanicOnDefault, PublicKey, Promise};
 
 #[derive(BorshSerialize, BorshStorageKey)]
@@ -7,10 +9,13 @@ enum StorageKeys {
     NearByPk,
 }
 
+mod fungible_tokens;
+use fungible_tokens::*;
+
 #[near_bindgen]
 #[derive(BorshSerialize, BorshDeserialize, PanicOnDefault)]
 pub struct Mapping {
-    near_by_pk: LookupMap<PublicKey, AccountId>
+    custom_struct: LookupSet<InternalFTData>
 }
 
 #[near_bindgen]
@@ -18,38 +23,26 @@ impl Mapping {
     #[init]
     pub fn new() -> Self {
         Self {
-            near_by_pk: LookupMap::new(StorageKeys::NearByPk)
+            custom_struct: LookupSet::new(StorageKeys::NearByPk)
         }
     }
 
     #[payable]
-    pub fn set(&mut self) {
-        let pk = env::signer_account_pk();
-        let account_id = env::signer_account_id();
-
+    pub fn store_contract_data(&mut self) {
         let initial_storage = env::storage_usage();
+        near_sdk::log!("initial bytes {}", initial_storage);
         
-        self.near_by_pk.insert(&pk, &account_id);
+        let mut new_struct = InternalFTData::new();
+        new_struct.store_struct_data();
+        new_struct.get_struct_data();
 
-        let net = env::storage_usage() - initial_storage;
-        let price = net as u128 * env::storage_byte_cost();
+        self.custom_struct.insert(&new_struct);
 
-        let attached_deposit = env::attached_deposit();
-        assert!(attached_deposit >= price, "ERR_NOT_ENOUGH_DEPOSIT");
-
-        // Refund any unused deposit
-        if attached_deposit > price {
-            near_sdk::log!(
-                "Refunding: {} for {} excess storage",
-                env::signer_account_id(),
-                attached_deposit - price
-            );
-            Promise::new(env::signer_account_id()).transfer(attached_deposit - price);
-        }
+        let final_storage = env::storage_usage();
+        near_sdk::log!("final bytes {}", final_storage);
     }
 
-    pub fn get_account_id(&self, pk: PublicKey) -> Option<AccountId> {
-        self.near_by_pk
-            .get(&pk)
+    pub fn get_contract_data(&self) -> bool {
+        self.custom_struct.contains(&CustomStruct::new())
     }
 }

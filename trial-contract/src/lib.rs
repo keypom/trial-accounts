@@ -270,12 +270,18 @@ pub fn create_account_and_claim() {
 	
 	// parse the input and get the public key
     let input_str = get_input(true);	
-	let (_, public_key_str) = split_once(&input_str, "\"new_public_key\":\"");
-	let (_, mut public_key_str) = split_once(public_key_str, "ed25519:");
+	let (_, mut public_key_str) = split_once(&input_str, "\"new_public_key\":\"");
 	public_key_str = &public_key_str[..public_key_str.len() - 2];
+	log(&format!("public_key_str1: {}", public_key_str));
+	
+	// If the key contains ed25519: prefix, remove it.
+	if public_key_str.contains("ed25519:") {
+		public_key_str = split_once(public_key_str, "ed25519:").1;
+		log(&format!("public_key_str2: {}", public_key_str));
+	}
+
 	let public_key = string_to_base58(public_key_str);
-	// log(&format!("public_key_str: {}", public_key_str));
-	// log(&format!("public_key: {:?}", public_key));
+	log(&format!("public_key: {:?}", public_key));
 	// log(&format!("public_key_len: {}", public_key.len()));
 
 	// cleanup account storage, keys, deploy empty string for contract

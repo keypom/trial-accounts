@@ -1,4 +1,4 @@
-use near_sdk::{Gas, GasWeight, serde_json::json, PromiseResult};
+use near_sdk::{Gas, GasWeight, serde_json::json, PromiseResult, require};
 
 use crate::*;
 
@@ -19,9 +19,12 @@ impl InternalFTData {
     /// Attempt to transfer FTs to a given address (will cover registration automatically).
     /// If the transfer fails, the FTs will be returned to the available balance
     /// Should *only* be invoked if the available balance is greater than or equal to the transfer amount.
-    pub fn ft_claim(&mut self, drop_id: U128, receiver_id: AccountId, transfer_amount: U128) {
+    pub fn ft_claim(&mut self, drop_id: U128, receiver_id: AccountId, transfer_amount: u128) {
+        near_sdk::log!("ft_claim receiver: {} amount: {}", receiver_id, transfer_amount);
+
+        require!(self.enough_balance(&transfer_amount), "not enough balance to transfer");
         // Decrement the available balance and then invoke the transfer
-        self.balance_avail.0 -= transfer_amount.0;
+        self.balance_avail -= transfer_amount;
 
         // Create a new batch promise to pay storage and transfer FTs to the new account ID
         let batch_transfer = env::promise_batch_create(&self.contract_id);
@@ -32,7 +35,7 @@ impl InternalFTData {
             batch_transfer,
             "storage_deposit",
             json!({ "account_id": receiver_id }).to_string().as_bytes(),
-            self.registration_cost.0,
+            self.registration_cost,
             MIN_GAS_FOR_STORAGE_DEPOSIT,
             GasWeight(1),
         );
@@ -42,7 +45,7 @@ impl InternalFTData {
         env::promise_batch_action_function_call_weight(
             batch_transfer,
             "ft_transfer",
-            json!({ "receiver_id": receiver_id, "amount": transfer_amount.0, "memo": "Keypom FT Tokens" }).to_string().as_bytes(),
+            json!({ "receiver_id": receiver_id, "amount": transfer_amount.to_string(), "memo": "Keypom FT Tokens" }).to_string().as_bytes(),
             1,
             MIN_GAS_FOR_FT_TRANSFER,
             GasWeight(1)
@@ -59,7 +62,7 @@ impl InternalFTData {
         env::promise_batch_action_function_call_weight(
             batch_resolve,
             "ft_resolve_batch",
-            json!({ "amount": transfer_amount, "drop_id": drop_id, "data_id": self.get_data_id() }).to_string().as_bytes(),
+            json!({ "amount": transfer_amount.to_string(), "drop_id": drop_id, "data_id": self.get_data_id() }).to_string().as_bytes(),
             0,
             MIN_GAS_FOR_RESOLVE_BATCH,
             GasWeight(3)
@@ -68,7 +71,7 @@ impl InternalFTData {
 
     /// Private function that will be called after the FT claim is finished. This will check whether the claim went through successfully.
     /// If it was unsuccessful, the available balance will be incremented (acting as a refund that can then be claimed via refund method)
-    pub fn resolve_ft_claim(&mut self, transfer_amount: U128) -> bool {
+    fn resolve_ft_claim(&mut self, transfer_amount: u128) -> bool {
         // check whether or not the transfer was successful
         let transfer_succeeded = matches!(env::promise_result(0), PromiseResult::Successful(_));
 
@@ -77,7 +80,7 @@ impl InternalFTData {
         }
 
         // If the transfer failed, then we need to increment the available balance
-        self.balance_avail.0 += transfer_amount.0;
+        self.balance_avail += transfer_amount;
 
         false
     }

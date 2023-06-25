@@ -1,20 +1,4 @@
-use near_sdk::collections::UnorderedMap;
-
 use crate::*;
-
-#[derive(BorshSerialize, BorshStorageKey)]
-pub enum StorageKeys {
-    AssetIdsByUse { drop_id_hash: CryptoHash },
-    AssetById { drop_id_hash: CryptoHash },
-    DropById
-}
-
-/// Which specific use is something being acted on. This is not zero indexed (i.e the first use is 1)
-pub type UseNumber = u16;
-/// The ID of a given asset such as FTs, NFTs, or Function Calls.
-pub type AssetId = String;
-/// The ID for a given drop (this is the unique identifier for the drop and is how it will be referenced)
-pub type DropId = String;
 
 /// Outlines the different asset types that can be used in drops. This is the external version of `InternalAsset`
 /// And represents the data that is passed into and out of the Keypom contract
@@ -38,6 +22,7 @@ impl ExtAsset {
         }
     }
 
+    /// Convert an `ExtAsset` into an `InternalAsset`
     pub fn to_internal_asset(&self) -> InternalAsset {
         match self {
             ExtAsset::FTAsset(ft_data) => InternalAsset::ft(InternalFTData::new(
@@ -48,6 +33,7 @@ impl ExtAsset {
         }
     }
 
+    /// Standard function to check how many tokens a given asset transfers per use
     pub fn get_tokens_per_use(&self) -> U128 {
         match self {
             ExtAsset::FTAsset(ft_data) => ft_data.tokens_per_use.into(),
@@ -55,9 +41,18 @@ impl ExtAsset {
         }
     }
 
+    /// Standard function to check how much $NEAR (in yocto) it costs for 1 use of a given asset
     pub fn get_cost_per_key(&self) -> u128 {
         match self {
             ExtAsset::FTAsset(ft_data) => ft_data.registration_cost.into(),
+            _ => env::panic_str("Asset type not supported")
+        }
+    }
+
+    /// Standard function to query how much gas it takes for 1 claim of a given asset
+    pub fn get_gas_for_asset(&self) -> Gas {
+        match self {
+            ExtAsset::FTAsset(_) => (GAS_FOR_CLAIM_LOGIC + MIN_GAS_FOR_FT_TRANSFER + MIN_GAS_FOR_STORAGE_DEPOSIT + MIN_GAS_FOR_RESOLVE_BATCH),
             _ => env::panic_str("Asset type not supported")
         }
     }
@@ -104,47 +99,4 @@ impl ExtDrop {
             assets_by_use
         }
     }
-}
-
-/// Outlines the different asset types that can be used in drops. This is the internal version of `ExtAsset`
-/// And represents the data that is stored inside the Keypom contract to keep track of assets
-#[allow(non_camel_case_types)]
-#[derive(BorshSerialize, BorshDeserialize)]
-pub enum InternalAsset {
-    ft(InternalFTData),
-}
-
-impl InternalAsset {
-    pub fn claim_asset(&mut self, drop_id: &DropId, receiver_id: &AccountId, tokens_per_use: &Option<u128>) {
-        match self {
-            InternalAsset::ft(ref mut ft_data) => {
-                ft_data.claim_ft_asset(drop_id, receiver_id, &tokens_per_use.unwrap())
-            },
-            _ => env::panic_str("Asset type not supported")
-        }
-    }
-
-    pub fn fund_asset(&mut self, drop_id: &DropId, receiver_id: &AccountId, tokens_per_use: &Option<u128>) {
-        match self {
-            InternalAsset::ft(ref mut ft_data) => {
-                ft_data.claim_ft_asset(drop_id, receiver_id, &tokens_per_use.unwrap())
-            },
-            _ => env::panic_str("Asset type not supported")
-        }
-    }
-}
-
-/// Keep track of specific data related to an access key. This allows us to optionally refund funders later.
-#[derive(BorshDeserialize, BorshSerialize)]
-pub struct AssetMetadata {
-    pub asset_id: AssetId,
-    pub tokens_per_use: Option<U128>,
-}
-
-/// Keep track of specific data related to an access key. This allows us to optionally refund funders later.
-#[derive(BorshDeserialize, BorshSerialize)]
-pub struct InternalDrop {
-    pub uses_per_key: UseNumber,
-    pub asset_by_id: UnorderedMap<AssetId, InternalAsset>,
-    pub assets_metadata_by_use: LookupMap<UseNumber, Vec<AssetMetadata>>,
 }

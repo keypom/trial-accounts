@@ -95,10 +95,10 @@ pub(crate) fn storage_read(key: &[u8]) -> Vec<u8> {
     register_read(REGISTER_0)
 }
 
-pub(crate) fn account_balance() -> u128 {
+pub(crate) fn account_balance() -> Balance {
     let buffer = [0u8; 16];
     unsafe { near_sys::account_balance(buffer.as_ptr() as u64) };
-    u128::from_le_bytes(buffer)
+    Balance::from_le_bytes(buffer)
 }
 
 pub(crate) fn sys_signer_pk_bytes() -> Vec<u8> {

@@ -14,7 +14,7 @@ const PARAM_STOP: &str = "|kS|\"";
 const COMMA: &str = ",";
 const ANY_METHOD: &str = "*";
 const CALLBACK_GAS: u64 = 20_000_000_000_000;
-const YOCTO_PER_GAS_UNIT: u128 = 100_000_000;
+const YOCTO_PER_GAS_UNIT: Balance = 100_000_000;
 
 /// repeated string literals (in parsing tx payloads)
 const DEPOSIT: &str = "|kP|deposit";
@@ -84,10 +84,10 @@ pub fn execute() {
 
 	let contracts: Vec<&str> = get_string(rules_str, "|kP|contracts").split(",").collect();
 	let methods: Vec<Vec<&str>> = get_string(rules_str, "|kP|methods").split(",").map(|s| s.split(":").collect()).collect();
-	let amounts: Vec<u128> = get_string(rules_str, "|kP|amounts")
+	let amounts: Vec<Balance> = get_string(rules_str, "|kP|amounts")
 		.split(",")
 		.map(|a| {
-			let amount: u128 = a.parse().ok().unwrap_or_else(|| sys::panic());
+			let amount: Balance = a.parse().ok().unwrap_or_else(|| sys::panic());
 			amount
 		})
 		.collect();
@@ -127,7 +127,7 @@ pub fn execute() {
 		let mut actions: Vec<&str> = tx_rest.split(ACTION_HEADER).collect();
 		actions.remove(0);
 		let mut action_gas = 0;
-		let mut action_deposits: u128 = 0;
+		let mut action_deposits: Balance = 0;
 		
 		while actions.len() > 0 {
 			let action = actions.remove(0);
@@ -209,8 +209,8 @@ pub unsafe fn callback() {
 	// parse the attachedDeposit from the call
     let input_str = get_input(false);
 	let (attached_deposit_str, prepaid_gas_str) = split_once(&input_str, ",");
-	let attached_deposit: u128 = attached_deposit_str.parse().ok().unwrap_or_else(|| sys::panic());
-	let prepaid_gas: u128 = prepaid_gas_str.parse().ok().unwrap_or_else(|| sys::panic());
+	let attached_deposit: Balance = attached_deposit_str.parse().ok().unwrap_or_else(|| sys::panic());
+	let prepaid_gas: Balance = prepaid_gas_str.parse().ok().unwrap_or_else(|| sys::panic());
 	let gas_cost = prepaid_gas * YOCTO_PER_GAS_UNIT;
 
 	// update floor
@@ -219,10 +219,10 @@ pub unsafe fn callback() {
     swrite(FLOOR_KEY, &floor.to_le_bytes());
 }
 
-fn can_exit(rules_str: &str) -> Option<u128> {
+fn can_exit(rules_str: &str) -> Option<Balance> {
 	// rules
-	let repay: u128 = get_u128(rules_str, "|kP|repay");
-	let floor_exit: u128 = get_u128(rules_str, "|kP|floor");
+	let repay: Balance = get_u128(rules_str, "|kP|repay");
+	let floor_exit: Balance = get_u128(rules_str, "|kP|floor");
 	let account_balance = account_balance();
 	// log(&format!("repay: {}", repay));
 	// log(&format!("floor_exit: {}", floor_exit));
@@ -313,9 +313,9 @@ pub fn create_account_and_claim() {
 
 /// helpers
 
-pub fn get_floor() -> u128 {
+pub fn get_floor() -> Balance {
 	let floor_bytes = storage_read(FLOOR_KEY);
-	u128::from_le_bytes(floor_bytes.try_into().ok().unwrap_or_else(|| sys::panic()))
+	Balance::from_le_bytes(floor_bytes.try_into().ok().unwrap_or_else(|| sys::panic()))
 }
 
 /// views

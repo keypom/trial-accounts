@@ -7,8 +7,8 @@ pub(crate) fn get_string<'a>(string: &'a str, key: &str) -> &'a str {
     &value[3..]
 }
 
-/// helper to get and parse the next u128 value from a string key in stringified json
-pub(crate) fn get_u128(str: &str, key: &str) -> u128 {
+/// helper to get and parse the next Balance value from a string key in stringified json
+pub(crate) fn get_u128(str: &str, key: &str) -> Balance {
     let amount = get_string(str, key);
     // TODO: This should be minimal, but can explore removing ToStr usage for code size
     amount.parse().ok().unwrap_or_else(|| sys::panic())

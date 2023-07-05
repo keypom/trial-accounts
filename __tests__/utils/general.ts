@@ -2,7 +2,6 @@ import { initKeypom } from "keypom-js";
 import { Near } from "near-api-js";
 import { InMemoryKeyStore } from "near-api-js/lib/key_stores";
 import { AccountBalance, BN, KeyPair, NEAR, NearAccount, TransactionResult } from "near-workspaces";
-import { JsonDrop, JsonKeyInfo } from "./types";
 import { formatNearAmount } from "near-api-js/lib/utils/format";
 
 export const DEFAULT_GAS: string = "30000000000000";
@@ -142,38 +141,6 @@ export function parseExecutionResults(
   console.log('%c%s', styles, logString);
 }
 
-export async function getDropSupplyForOwner(
-  keypom: NearAccount,
-  ownerId: string
-): Promise<number> {
-  const dropSupplyForOwner: number = await keypom.view('get_drop_supply_for_owner', {account_id: ownerId});
-  return dropSupplyForOwner;
-}
-
-export async function getKeySupplyForDrop(
-  keypom: NearAccount,
-  dropId: string
-): Promise<number> {
-  const getKeySupplyForDrop: number = await keypom.view('get_key_supply_for_drop', {drop_id: dropId});
-  return getKeySupplyForDrop;
-}
-
-export async function getKeyInformation(
-  keypom: NearAccount,
-  publicKey: string
-): Promise<JsonKeyInfo> {
-  const keyInformation: JsonKeyInfo = await keypom.view('get_key_information', {key: publicKey});
-  return keyInformation;
-}
-
-export async function getDropInformation(
-  keypom: NearAccount,
-  dropId: string
-): Promise<JsonDrop> {
-  const dropInfo: JsonDrop = await keypom.view('get_drop_information', {drop_id: dropId});
-  return dropInfo;
-}
-
 export async function generateKeyPairs(
   numKeys: number,
 ): Promise<{ keys: KeyPair[]; publicKeys: string[] }> {
@@ -216,87 +183,3 @@ export function defaultCallOptions(
 //   console.log(`diff: ${diff.toString()} range: ${JSON.stringify(acceptableRange)}`)
 //   return diff.gte(acceptableRange.lower) && diff.lte(acceptableRange.upper)
 // }
-
-export async function queryAllViewFunctions(
-  {
-  contract,
-  drop_id = null,
-  key = null,
-  from_index = '0',
-  limit = 50,
-  account_id = null
-  }: 
-  {
-    contract: NearAccount,
-    drop_id?: string | null,
-    key?: string | null,
-    from_index?: string | null,
-    limit?: number | null,
-    account_id?: string | null
-  }
-): Promise<{
-  keyBalance: string | null,
-  keyInformation: JsonKeyInfo | null,
-  dropInformation: JsonDrop | null,
-  keySupplyForDrop: number | null,
-  keysForDrop: JsonKeyInfo[] | null,
-  tokenIdsForDrop: string[] | null,
-  dropSupplyForOwner: number | null,
-  dropsForOwner: JsonDrop[] | null,
-  gasPrice: number,
-  rootAccount: string,
-  feesCollected: string,
-  nextDropId: number,
-  keyTotalSupply: number,
-  keys: JsonKeyInfo[],
-}> {
-  let getGasPrice: number = await contract.view('get_gas_price', {});
-  let getRootAccount: string = await contract.view('get_root_account', {});
-  let getFeesCollected: string = await contract.view('get_fees_collected', {});
-  let getNextDropId: number = await contract.view('get_next_drop_id', {});
-  let keyTotalSupply: number = await contract.view('get_key_total_supply', {});
-  let getKeys: JsonKeyInfo[] = await contract.view('get_keys', {from_index, limit});
-
-  let getKeyBalance: string | null = null;
-  let getKeyInformation: JsonKeyInfo | null = null;
-  if(key != null) {
-    getKeyBalance = await contract.view('get_key_balance', {key});
-    getKeyInformation = await contract.view('get_key_information', {key});
-  }
-
-  let getDropInformation: JsonDrop | null = null;
-  let getKeySupplyForDrop: number | null = null;
-  let getKeysForDrop: JsonKeyInfo[] | null = null;
-  let tokenIdsForDrop: string[] | null = null;
-  if(drop_id != null) {
-    getDropInformation = await contract.view('get_drop_information', {drop_id});
-    getKeySupplyForDrop = await contract.view('get_key_supply_for_drop', {drop_id});
-    getKeysForDrop = await contract.view('get_keys_for_drop', {drop_id, from_index, limit});
-    tokenIdsForDrop = await contract.view('get_nft_token_ids_for_drop', {drop_id, from_index, limit});
-  }
-
-  let dropSupplyForOwner: number | null = null;
-  let dropsForOwner: JsonDrop[] | null = null;
-  if(account_id != null) {
-    dropSupplyForOwner = await contract.view('get_drop_supply_for_owner', {account_id});
-    dropsForOwner = await contract.view('get_drops_for_owner', {account_id, from_index, limit});
-  }
-
-
-  return {
-    keyBalance: getKeyBalance,
-    keyInformation: getKeyInformation,
-    dropInformation: getDropInformation,
-    keySupplyForDrop: getKeySupplyForDrop,
-    keysForDrop: getKeysForDrop,
-    tokenIdsForDrop: tokenIdsForDrop,
-    dropSupplyForOwner: dropSupplyForOwner,
-    dropsForOwner: dropsForOwner,
-    gasPrice: getGasPrice,
-    rootAccount: getRootAccount,
-    feesCollected: getFeesCollected,
-    nextDropId: getNextDropId,
-    keyTotalSupply: keyTotalSupply,
-    keys: getKeys,
-  }
-}

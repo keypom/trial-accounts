@@ -10,6 +10,7 @@
 		"test": "ava __tests__/v3-tests.ava.ts",
 		"test:deletion:single": "ava __tests__/deletion/ft-single-use.ava.ts",
 		"test:deletion:multi": "ava __tests__/deletion/ft-multi-use.ava.ts",
+		"test:claim:null": "ava __tests__/claims/null-claim.ava.ts",
 		"test:creation": "ava __tests__/v3-tests.ava.ts"
 	},
 	"dependencies": {

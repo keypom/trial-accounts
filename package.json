@@ -18,7 +18,8 @@
 		"test:claim:ft": "ava __tests__/claims/ft-claim.ava.ts",
 		"test:claim:near": "ava __tests__/claims/near-claim.ava.ts",
 		"test:claim:nft": "ava __tests__/claims/nft-claim.ava.ts",
-		"test:general": "ava __tests__/v3-tests.ava.ts"
+		"test:general": "ava __tests__/v3-tests.ava.ts",
+		"test:failed": "ava __tests__/creation/failed-creation.ts"
 	},
 	"dependencies": {
 		"@types/bn.js": "^5.1.0",

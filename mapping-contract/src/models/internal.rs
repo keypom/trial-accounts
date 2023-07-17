@@ -8,8 +8,10 @@ pub enum StorageKeys {
     AssetById { drop_id_hash: CryptoHash },
     KeyInfoByPk { drop_id_hash: CryptoHash },
     DropMetadata { drop_id_hash: CryptoHash },
+    TokensPerOwnerInner { account_id_hash: CryptoHash },
+    TokensPerOwner,
     DropById,
-    DropIdByPk,
+    TokenIdByPk,
     UserBalances
 }
 
@@ -28,9 +30,12 @@ pub struct InternalDrop {
     pub asset_by_id: UnorderedMap<AssetId, InternalAsset>,
     /// For every use number, keep track of what assets there are.
     pub key_behavior_by_use: LookupMap<UseNumber, KeyBehavior>,
-    
+
+    /// Information about the NFT keys and how they're rendered / payout options etc.
+    pub nft_config: Option<NFTKeyBehaviour>,
+
     /// Set of public keys associated with this drop mapped to their specific key information.
-    pub key_info_by_pk: UnorderedMap<PublicKey, InternalKeyInfo>,
+    pub key_info_by_token_id: UnorderedMap<TokenId, InternalKeyInfo>,
     /// Keep track of the next nonce to give out to a key
     pub next_key_id: u64
 }
@@ -77,11 +82,23 @@ impl InternalDrop {
 /// Keep track of different configuration options for each key in a drop
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct InternalKeyInfo {
+    /// Current public key that is mapped to this key info
+    pub pub_key: PublicKey,
+
     /// How many uses this key has left. Once 0 is reached, the key is deleted
     pub remaining_uses: UseNumber,
 
-    /// Nonce for the current key.
-    pub key_id: u64,
+    /// How much allowance does the key have left.
+    pub allowance: Balance,
+
+    // Owner of the Key
+    pub owner_id: AccountId,
+
+    // List of approved account IDs that have access to transfer the token. This maps an account ID to an approval ID
+    pub approved_account_ids: HashMap<AccountId, u64>,
+
+    // The next approval ID to give out. 
+    pub next_approval_id: u64,
 }
 
 /// Outlines the different asset types that can be used in drops. This is the internal version of `ExtAsset`
@@ -139,15 +156,24 @@ impl InternalAsset {
     pub fn on_failed_claim(&mut self, tokens_per_use: &Option<String>) -> Balance {
         match self {
             InternalAsset::ft(ref mut ft_data) => {
-                let ft_to_refund = &tokens_per_use.as_ref().unwrap().parse::<u128>().unwrap();
-                near_sdk::log!("Failed claim for FT asset. Refunding {} to the user's balance and incrementing balance available by {}", 0, ft_to_refund);
-                ft_data.add_to_balance_avail(ft_to_refund);
+                if let Some(tokens_per_use) = tokens_per_use {
+                    let ft_to_refund = tokens_per_use.parse::<u128>().unwrap();
+                    near_sdk::log!("Failed claim for FT asset. Refunding {} to the user's balance and incrementing balance available by {}", 0, ft_to_refund);
+                    ft_data.add_to_balance_avail(&ft_to_refund);
+                } else {
+                    near_sdk::log!("Failed claim for FT asset");
+                }
+
                 0
             },
             InternalAsset::nft(ref mut nft_data) => {
-                let token_id = &tokens_per_use.as_ref().unwrap();
-                near_sdk::log!("Failed claim NFT asset with Token ID {}", token_id);
-                nft_data.add_to_token_ids(token_id);
+                if let Some(token_id) = tokens_per_use {
+                    near_sdk::log!("Failed claim NFT asset with Token ID {}", token_id);
+                    nft_data.add_to_token_ids(token_id);
+                } else {
+                    near_sdk::log!("Failed claim NFT asset");
+                }
+
                 0
             },
             InternalAsset::near => {

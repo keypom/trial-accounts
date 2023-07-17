@@ -1,8 +1,8 @@
 use crate::*;
 
 /// Used to generate a unique prefix in our storage collections (this is to avoid data collisions)
-pub(crate) fn hash_drop_id(drop_id: &String) -> CryptoHash {
-    env::sha256_array(drop_id.as_bytes())
+pub(crate) fn hash_string(string: &String) -> CryptoHash {
+    env::sha256_array(string.as_bytes())
 }
 
 /// Helper function to convert yoctoNEAR to $NEAR with 7 decimals of precision.
@@ -89,4 +89,13 @@ pub(crate) fn get_total_costs_for_key(
         // Increment the user's balance by the gas cost for this use
         *total_allowance_for_keys += calculate_base_allowance(YOCTO_PER_GAS, total_gas_for_use, false);
     }
+}
+
+/// Take a token ID and return the drop ID and key nonce based on the `:` delimiter.
+pub(crate) fn parse_token_id(token_id: &TokenId) -> (DropId, u64) {
+    let delimiter = ":";
+    let split: Vec<&str> = token_id.split(delimiter).collect();
+    let drop_id = split[0];
+    let key_nonce = split[1].parse::<u64>().expect("Key nonce is not a valid number");
+    return (drop_id.to_string(), key_nonce);
 }

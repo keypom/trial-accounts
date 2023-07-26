@@ -6,6 +6,7 @@ package-lock.json
 /.pnp
 .pnp.js
 /out
+!/out/linkdrop.wasm
 
 #keys
 /neardev

@@ -7,7 +7,7 @@
 		"build:contracts": "yarn build:mapping && yarn build:trial",
 		"build:trial": "cd trial-contract && ./build.sh",
 		"build:mapping": "cd mapping-contract && ./build.sh",
-		"test": "ava __tests__/trial-tests.ava.ts"
+		"test": "yarn build:trial && ava __tests__/trial-tests.ava.ts"
 	},
 	"dependencies": {
 		"@types/bn.js": "^5.1.0",

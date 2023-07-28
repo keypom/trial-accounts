@@ -7,15 +7,22 @@
 		"build:contracts": "yarn build:mapping && yarn build:trial",
 		"build:trial": "cd trial-contract && ./build.sh",
 		"build:mapping": "cd mapping-contract && ./build.sh",
-		"test": "yarn build:trial && ava __tests__/trial-tests.ava.ts"
+		"test": "yarn build:trial && yarn build:mapping && ava __tests__/test.ava.ts"
 	},
 	"dependencies": {
 		"@types/bn.js": "^5.1.0",
-		"ava": "^5.2.0",
-		"near-api-js": "^0.45.1",
+		"ava": "^5.3.1",
+		"@near-js/accounts": "^0.1.3",
+		"@near-js/crypto": "^0.0.4",
+		"@near-js/keystores": "^0.0.4",
+		"@near-js/keystores-browser": "^0.0.4",
+		"@near-js/transactions": "^0.2.0",
+		"@near-js/types": "^0.0.4",
+		"@near-js/utils": "^0.0.4",
+		"@near-js/wallet-account": "^0.0.6",
 		"near-workspaces": "^3.3.0",
 		"ts-node": "^10.8.0",
 		"typescript": "^4.6.4",
-		"keypom-js": "1.4.5"
+		"@keypom/core": "1.0.2"
 	}
 }

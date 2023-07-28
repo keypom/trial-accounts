@@ -1,5 +1,5 @@
-import { initKeypom } from "keypom-js";
-import { Near } from "near-api-js";
+import { initKeypom } from "@keypom/core";
+import { Near } from '@near-js/wallet-account';
 import { InMemoryKeyStore } from "near-api-js/lib/key_stores";
 import { BN, KeyPair, NEAR, NearAccount, TransactionResult } from "near-workspaces";
 import { JsonDrop, JsonKeyInfo } from "./types";
@@ -14,6 +14,7 @@ export const CONTRACT_METADATA = {
   "version": "1.0.0",
   "link": "https://github.com/mattlockyer/proxy/commit/71a943ea8b7f5a3b7d9e9ac2208940f074f8afba",
 }
+
 
 export async function initKeypomConnection(
   rpcPort: string,
